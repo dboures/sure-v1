@@ -8,4 +8,13 @@ pub enum SureError {
     /// =========== Pool =============
     #[msg("Invalid Range size")]
     InvalidRangeSize,
+
+    #[msg("Invalid tick to provide liquidity to")]
+    InvalidTick,
+
+    #[msg("Invalid Amount")]
+    InvalidAmount,
+
+    #[msg("All of the liquidity is used")]
+    LiquidityFilled,
 }

@@ -1,4 +1,7 @@
-use anchor_lang::prelude::*;
+use std::thread::AccessError;
+
+use anchor_lang::{prelude::*, solana_program::account_info::Account};
+use anchor_spl::token::TokenAccount;
 
 /// Account describing the pool manager
 /// 
@@ -42,7 +45,7 @@ pub struct PoolAccount {
     pub liquidity: u64, // 8 bytes
 
     /// Available Liquidity in the pool
-    pub free_liquidity: u64, // 8 bytes 
+    pub active_liquidity: u64, // 8 bytes 
 
     /// Current premium rate in basis points (0.01%). 
     pub premium_rate: u64, // 8 bytes
@@ -65,15 +68,69 @@ impl PoolAccount{
     pub const SPACE:usize = 1+32+4+4+4+8+8+8+4+200+32+32+1;
 }
 
-/// Deposit Liquidity
-/// allows any user to deposit liquidity into a range of premiums 
-/// in return for NFTs representing the positions
-#[derive(Accounts)]
-pub struct DepositLiquidity<'info>{
-    /// Liquidity Provider is also the signer of the transaction
-    #[account(mut)]
-    pub liquidity_provider: Signer<'info>,
 
-    /// Pool to provide liquidity to
-    pub pool: Account<'info,PoolAccount>
+/// Tick acount (PDA) is used to hold information about 
+/// the liquidity at a current tick
+#[account]
+#[derive(Default)]
+pub struct Tick{
+    /// The bump identity of the PDA
+    pub bump: u8, // 1 byte
+
+    /// The active liquidity at the tick
+    pub liquidity: u64, // 8bytes
+
+    /// The tick in basis points
+    pub tick: u32, // 8 bytes 
+
+    /// Boolean representing whether the liquidity is active
+    pub active: bool, // 1 byte 
 }
+
+/// Liquidity Position holds information about a given 
+/// token position
+/// Each token position references an NFT mint 
+#[account]
+#[derive(Default)]
+pub struct LiquidityPosition {
+    /// Bump Identity
+    pub bump: u8, // 1byte
+
+    /// The amount of liquidity provided in lamports 
+    pub liquidity: u64, // 8 bytes
+
+    /// the amount of liquidity used
+    pub used_liquidity: u64, // 8 bytes
+
+    /// Liquidity Pool 
+    pub pool: Pubkey, // 32 bytes
+
+    /// Mint of token provided
+    pub token_mint: Pubkey, // 32 bytes
+    
+    /// NFT mint. The mint representing the position
+    /// The NFT is the owner of the position. 
+    pub nft_mint: Pubkey, // 32 bytes
+
+    /// Time at liquidity position creation
+    pub created_at: i64, // 8 bytes,
+
+    /// The tick that the liquidity is at 
+    pub tick: u32, // 4 bytes
+}
+
+impl LiquidityPosition{
+    pub const SPACE:usize = 1 + 8 +8 + 32 + 32 + 32 + 8 + 4;
+}
+
+#[event]
+pub struct NewLiquidityPosition {
+    pub tick: u32,
+    pub liquidity: u64,
+}
+
+
+
+
+
+
